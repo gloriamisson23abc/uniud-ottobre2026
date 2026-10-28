@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mappe Cognitive - Corso TIC | Gloria Misson</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Smooth transitions & animations */
+        .tab-content {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .tab-content.active {
+            display: block;
+            opacity: 1;
+        }
+        .node-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        /* Custom scrollbar for mindmap canvas */
+        .canvas-bg {
+            background-color: #f8fafc;
+            background-image: radial-gradient(#e2e8f0 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+
+    <!-- Header Section -->
+    <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-50 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-brand-500 p-2.5 rounded-xl text-white shadow-lg shadow-brand-500/30">
+                        <i data-lucide="network" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white">Mappe Cognitive & Apprendimento</h1>
+                        <p class="text-xs sm:text-sm text-slate-400">Laboratorio TIC • Didattica e Tecnologie dell'Informazione</p>
+                    </div>
+                </div>
+                
+                <!-- Student Badge -->
+                <div class="flex items-center space-x-3 bg-slate-800/80 px-4 py-2 rounded-xl border border-slate-700/60 self-start md:self-auto">
+                    <div class="w-9 h-9 rounded-full bg-brand-600/30 text-brand-400 flex items-center justify-center font-semibold text-sm border border-brand-500/30">
+                        GM
+                    </div>
+                    <div class="text-xs sm:text-sm">
+                        <span class="block font-medium text-slate-200">Gloria Misson</span>
+                        <span class="block text-slate-400">Matricola: <code class="font-mono text-brand-400">0-86700</code></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="bg-slate-900/90 border-t border-slate-800/80 backdrop-blur-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <nav class="flex space-x-1 sm:space-x-4 overflow-x-auto py-2 scrollbar-none" aria-label="Tabs">
+                    <button onclick="switchTab('panoramica')" id="tab-btn-panoramica" 
+                        class="tab-btn active px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg flex items-center space-x-2 whitespace-nowrap transition-colors bg-brand-600 text-white">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                        <span>1. Panoramica & Consegna</span>
+                    </button>
+                    <button onclick="switchTab('confronto')" id="tab-btn-confronto" 
+                        class="tab-btn px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg flex items-center space-x-2 whitespace-nowrap transition-colors text-slate-400 hover:text-white hover:bg-slate-800">
+                        <i data-lucide="git-fork" class="w-4 h-4"></i>
+                        <span>2. Mentali vs Concettuali</span>
+                    </button>
+                    <button onclick="switchTab('didattica')" id="tab-btn-didattica" 
+                        class="tab-btn px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg flex items-center space-x-2 whitespace-nowrap transition-colors text-slate-400 hover:text-white hover:bg-slate-800">
+                        <i data-lucide="graduation-cap" class="w-4 h-4"></i>
+                        <span>3. Didattica & Calibrazione</span>
+                    </button>
+                    <button onclick="switchTab('simulatore')" id="tab-btn-simulatore" 
+                        class="tab-btn px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg flex items-center space-x-2 whitespace-nowrap transition-colors text-slate-400 hover:text-white hover:bg-slate-800">
+                        <i data-lucide="cpu" class="w-4 h-4"></i>
+                        <span class="font-semibold text-brand-400 hover:text-brand-300">4. Costruttore Interattivo</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+
+        <!-- TAB 1: PANORAMICA & CONSEGNA -->
+        <section id="tab-panoramica" class="tab-content active space-y-6">
+            <!-- Hero banner -->
+            <div class="bg-gradient-to-r from-brand-900 via-slate-900 to-slate-800 rounded-2xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
+                <div class="absolute right-0 top-0 bottom-0 opacity-10 pointer-events-none p-6">
+                    <i data-lucide="brain-circuit" class="w-96 h-96 -mr-20 -mt-20 text-white"></i>
+                </div>
+                <div class="max-w-3xl relative z-10 space-y-4">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-brand-500/20 text-brand-300 border border-brand-500/30">
+                        1ª Esercitazione Corso TIC
+                    </span>
+                    <h2 class="text-2xl sm:text-4xl font-extrabold tracking-tight">
+                        Costruzione e Analisi delle Mappe Cognitive
+                    </h2>
+                    <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+                        Esplorazione delle rappresentazioni mentali visive: dalle mappe mentali a struttura radiale fino alle mappe concettuali a rete gerarchica. Analisi delle abilità cognitive richieste e delle strategie didattiche di calibrazione.
+                    </p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Consegna -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4">
+                        <i data-lucide="file-question" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">Consegna dell'Esercizio</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed mb-4">
+                        Costruzione di una mappa cognitiva con focus sulle abilità richieste ed esplorazione delle differenti tipologie di mappe configurabili (dal livello facile a quello complesso).
+                    </p>
+                    <div class="p-3 bg-amber-50/50 rounded-xl border border-amber-100 text-xs text-amber-800 font-medium">
+                         Domande chiave: Quali abilità richiede? Quali mappe si possono immaginare dal semplice al complesso?
+                    </div>
+                </div>
+
+                <!-- Caratteristiche -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
+                        <i data-lucide="sliders" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">Funzione Cognitiva</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed mb-3">
+                        Rappresentazioni strutturate che supportano l'intero ciclo di elaborazione delle informazioni:
+                    </p>
+                    <ul class="space-y-1.5 text-xs sm:text-sm text-slate-700">
+                        <li class="flex items-center space-x-2">
+                            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500 shrink-0"></i>
+                            <span>Comprendere & Acquisire</span>
+                        </li>
+                        <li class="flex items-center space-x-2">
+                            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500 shrink-0"></i>
+                            <span>Selezionare & Organizzare</span>
+                        </li>
+                        <li class="flex items-center space-x-2">
+                            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500 shrink-0"></i>
+                            <span>Memorizzare, Richiamare & Collegare</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Grado di Complessità -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-4">
+                        <i data-lucide="trending-up" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">Continuum di Complessità</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed mb-4">
+                        Le mappe cognitive non sono tutte uguali: spaziano da semplici supporti associativi a complesse strutture logico-gerarchiche.
+                    </p>
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between p-2.5 bg-emerald-50 rounded-xl text-xs font-semibold text-emerald-800">
+                            <span>Semplice: Mappa Mentale</span>
+                            <span class="px-2 py-0.5 bg-emerald-200/60 rounded-md">Radiale</span>
+                        </div>
+                        <div class="flex items-center justify-between p-2.5 bg-indigo-50 rounded-xl text-xs font-semibold text-indigo-800">
+                            <span>Complessa: Mappa Concettuale</span>
+                            <span class="px-2 py-0.5 bg-indigo-200/60 rounded-md">Reticolare</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: CONFRONTO MAPPE -->
+        <section id="tab-confronto" class="tab-content space-y-6">
+            <div class="text-center max-w-2xl mx-auto space-y-2">
+                <h2 class="text-2xl font-bold text-slate-900">Mappe Mentali vs. Mappe Concettuali</h2>
+                <p class="text-slate-600 text-sm">Confronto strutturale, visivo e pedagogico tra le due tipologie di mappe cognitive.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- MAPPA MENTALE -->
+                <div class="bg-white rounded-2xl border-2 border-emerald-100 shadow-sm overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <div class="bg-gradient-to-r from-emerald-500 to-teal-600 p-5 text-white">
+                            <div class="flex items-center justify-between">
+                                <span class="px-2.5 py-1 bg-white/20 backdrop-blur-md rounded-lg text-xs font-bold uppercase tracking-wider">
+                                    Struttura Radiale
+                                </span>
+                                <i data-lucide="sun" class="w-6 h-6 text-emerald-100"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold mt-2">Mappa Mentale</h3>
+                            <p class="text-emerald-100 text-xs mt-1">Focus su memoria visiva, associazioni rapide e creatività</p>
+                        </div>
+
+                        <div class="p-6 space-y-4">
+                            <!-- Caratteristica 1 -->
+                            <div class="flex items-start space-x-3">
+                                <div class="p-2 bg-emerald-50 rounded-lg text-emerald-600 shrink-0">
+                                    <i data-lucide="target" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-slate-900 text-sm">Idea Centrale al Centro</h4>
+                                    <p class="text-xs text-slate-600 mt-0.5">
+                                        L'argomento o concetto chiave è posto al centro dello schema. Da esso si diramano idee categorizzate tramite associazioni dirette.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Caratteristica 2 -->
+                            <div class="flex items-start space-x-3">
+                                <div class="p-2 bg-emerald-50 rounded-lg text-emerald-600 shrink-0">
+                                    <i data-lucide="palette" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-slate-900 text-sm">Immagini Fantasiose e Colori</h4>
+                                    <p class="text-xs text-slate-600 mt-0.5">
+                                        Gli elementi devono essere ricchi di stimoli visivi e colorati per rendere gradevole la rappresentazione e stimolare sia creatività che memoria.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Caratteristica 3 -->
+                            <div class="flex items-start space-x-3">
+                                <div class="p-2 bg-emerald-50 rounded-lg text-emerald-600 shrink-0">
+                                    <i data-lucide="type" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-slate-900 text-sm">Singole Parole Chiave</h4>
+                                    <p class="text-xs text-slate-600 mt-0.5">
+                                        Uso esclusivo di singole parole o brevi etichette (evitando periodi estesi) per lasciare spazio a nuove associazioni e integrazioni.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-emerald-50/60 border-t border-emerald-100 text-xs text-emerald-900 flex items-center justify-between">
+                        <span class="font-semibold">Obiettivo Primario:</span>
+                        <span>Implementare la memoria visiva</span>
+                    </div>
+                </div>
+
+                <!-- MAPPA CONCETTUALE -->
+                <div class="bg-white rounded-2xl border-2 border-indigo-100 shadow-sm overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <div class="bg-gradient-to-r from-indigo-600 to-blue-700 p-5 text-white">
+                            <div class="flex items-center justify-between">
+                                <span class="px-2.5 py-1 bg-white/20 backdrop-blur-md rounded-lg text-xs font-bold uppercase tracking-wider">
+                                    Struttura Reticolare
+                                </span>
+                                <i data-lucide="network" class="w-6 h-6 text-indigo-100"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold mt-2">Mappa Concettuale</h3>
+                            <p class="text-indigo-100 text-xs mt-1">Focus su struttura logica, gerarchia e apprendimento significativo</p>
+                        </div>
+
+                        <div class="p-6 space-y-4">
+                            <!-- Caratteristica 1 -->
+                            <div class="flex items-start space-x-3">
+                                <div class="p-2 bg-indigo-50 rounded-lg text-indigo-600 shrink-0">
+                                    <i data-lucide="help-circle" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-slate-900 text-sm">Domanda Focale e Gerarchia</h4>
+                                    <p class="text-xs text-slate-600 mt-0.5">
+                                        Partono da una domanda focale posta in alto e sviluppano concetti lungo livelli gerarchici guidati dalla logica.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Caratteristica 2 -->
+                            <div class="flex items-start space-x-3">
+                                <div class="p-2 bg-indigo-50 rounded-lg text-indigo-600 shrink-0">
+                                    <i data-lucide="git-merge" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-slate-900 text-sm">Collegamenti Trasversali</h4>
+                                    <p class="text-xs text-slate-600 mt-0.5">
+                                        Rete interconnessa di concetti, eventi e teorie collegati trasversalmente per evidenziare le reciproche interrelazioni.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Caratteristica 3 -->
+                            <div class="flex items-start space-x-3">
+                                <div class="p-2 bg-indigo-50 rounded-lg text-indigo-600 shrink-0">
+                                    <i data-lucide="sparkles" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-slate-900 text-sm">Apprendimento Significativo</h4>
+                                    <p class="text-xs text-slate-600 mt-0.5">
+                                        Unisce creatività e collegamento delle nuove informazioni con le conoscenze già possedute (Ausuabel/Novak).
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-indigo-50/60 border-t border-indigo-100 text-xs text-indigo-900 flex items-center justify-between">
+                        <span class="font-semibold">Obiettivo Primario:</span>
+                        <span>Rappresentazione logico-concettuale</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: DIDATTICA & CALIBRAZIONE -->
+        <section id="tab-didattica" class="tab-content space-y-6">
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                <h2 class="text-xl font-bold text-slate-900 mb-6 flex items-center space-x-2">
+                    <i data-lucide="award" class="w-6 h-6 text-brand-600"></i>
+                    <span>Inquadramento Pedagogico & Didattico</span>
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Prerequisiti -->
+                    <div class="bg-slate-50 p-5 rounded-xl border border-slate-200/80 space-y-3">
+                        <div class="flex items-center space-x-2 text-slate-900 font-bold text-sm">
+                            <i data-lucide="key" class="w-4 h-4 text-amber-500"></i>
+                            <span>Prerequisiti Indispensabili</span>
+                        </div>
+                        <ul class="space-y-2 text-xs text-slate-700">
+                            <li class="flex items-start space-x-2">
+                                <span class="text-amber-500 font-bold">•</span>
+                                <span><strong>Capacità di Sintesi:</strong> Estrapolazione delle informazioni fondamentali dal testo.</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <span class="text-amber-500 font-bold">•</span>
+                                <span><strong>Rappresentazione Grafica:</strong> Abilità di trasporre concetti in elementi visivi.</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <span class="text-amber-500 font-bold">•</span>
+                                <span><strong>Relazioni Causa/Effetto:</strong> Comprensione dei nessi consequenziali e temporali.</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Obiettivi Principali -->
+                    <div class="bg-slate-50 p-5 rounded-xl border border-slate-200/80 space-y-3">
+                        <div class="flex items-center space-x-2 text-slate-900 font-bold text-sm">
+                            <i data-lucide="target" class="w-4 h-4 text-brand-600"></i>
+                            <span>Obiettivi Principali</span>
+                        </div>
+                        <ul class="space-y-2 text-xs text-slate-700">
+                            <li class="flex items-start space-x-2">
+                                <span class="text-brand-600 font-bold">•</span>
+                                <span><strong>Comprensione globale:</strong> Individuazione delle idee portanti del testo/argomento.</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <span class="text-brand-600 font-bold">•</span>
+                                <span><strong>Capacità di Sintesi:</strong> Riduzione della complessità testuale in parole chiave.</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Obiettivi Secondari -->
+                    <div class="bg-slate-50 p-5 rounded-xl border border-slate-200/80 space-y-3">
+                        <div class="flex items-center space-x-2 text-slate-900 font-bold text-sm">
+                            <i data-lucide="layers" class="w-4 h-4 text-indigo-600"></i>
+                            <span>Obiettivi Secondari</span>
+                        </div>
+                        <ul class="space-y-2 text-xs text-slate-700">
+                            <li class="flex items-start space-x-2">
+                                <span class="text-indigo-600 font-bold">•</span>
+                                <span><strong>Relazioni causa/effetto:</strong> Analisi approfondita dei collegamenti tra nodi.</span>
+                            </li>
+                            <li class="flex items-start space-x-2">
+                                <span class="text-indigo-600 font-bold">•</span>
+                                <span><strong>Integrazione interdisciplinare:</strong> Collegamento con materie o argomenti pregresso.</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Moduli di Calibrazione e Modifiche -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <h3 class="font-bold text-slate-900 text-base mb-3 flex items-center space-x-2">
+                        <i data-lucide="sliders-horizontal" class="w-5 h-5 text-emerald-600"></i>
+                        <span>Modalità di Calibrazione</span>
+                    </h3>
+                    <p class="text-xs text-slate-600 mb-4">Strategie per adattare la mappa al livello dell'alunno:</p>
+                    <div class="grid grid-cols-2 gap-3 text-xs">
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 font-medium text-slate-800">
+                             Solamente Parole Chiave
+                        </div>
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 font-medium text-slate-800">
+                             Frasi o Descrizioni
+                        </div>
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 font-medium text-slate-800">
+                             Immagini di Supporto
+                        </div>
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 font-medium text-slate-800">
+                             Link Ipertestuali & Colori
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <h3 class="font-bold text-slate-900 text-base mb-3 flex items-center space-x-2">
+                        <i data-lucide="settings-2" class="w-5 h-5 text-purple-600"></i>
+                        <span>Tipologia e Modifiche</span>
+                    </h3>
+                    <p class="text-xs text-slate-600 mb-4">Personalizzazioni della complessità e multimedialità:</p>
+                    <div class="grid grid-cols-2 gap-3 text-xs">
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 font-medium text-slate-800">
+                             Scelta Mentale vs Concettuale
+                        </div>
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 font-medium text-slate-800">
+                             Variazione Numero Nodi
+                        </div>
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 font-medium text-slate-800">
+                             Inserimento File Audio
+                        </div>
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 font-medium text-slate-800">
+                             Integrazione Video Didattici
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: SIMULATORE INTERATTIVO -->
+        <section id="tab-simulatore" class="tab-content space-y-6">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                
+                <!-- Controls bar -->
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900 flex items-center space-x-2">
+                            <i data-lucide="sparkles" class="w-5 h-5 text-brand-600"></i>
+                            <span>Costruttore & Simulatore Interattivo</span>
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Visualizza le strutture, aggiungi nodi personalizzati o passa da un formato all'altro.</p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Mode Switcher -->
+                        <div class="bg-slate-100 p-1 rounded-xl flex space-x-1">
+                            <button id="btn-mode-mental" onclick="setMapType('mental')" 
+                                class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-white text-slate-900 shadow-sm">
+                                 Mappa Mentale
+                            </button>
+                            <button id="btn-mode-conceptual" onclick="setMapType('conceptual')" 
+                                class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-600 hover:text-slate-900">
+                                 Mappa Concettuale
+                            </button>
+                        </div>
+
+                        <!-- Reset / Action buttons -->
+                        <button onclick="resetMap()" class="p-2 text-slate-600 hover:bg-slate-100 rounded-lg text-xs font-medium flex items-center space-x-1 border border-slate-200" title="Ripristina mappa predefinita">
+                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Add Node Control Box -->
+                <div class="bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-200/80 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                    <input type="text" id="node-text-input" placeholder="Etichetta nuovo nodo (es. Creatività)..." 
+                        class="flex-1 px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
+                    
+                    <select id="node-color-select" class="px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
+                        <option value="emerald"> Verde (Mentale)</option>
+                        <option value="indigo"> Indaco (Concettuale)</option>
+                        <option value="amber"> Ambra (In evidenza)</option>
+                        <option value="purple"> Viola (Multimediale)</option>
+                    </select>
+
+                    <button onclick="addNewNode()" class="px-4 py-2 bg-brand-600 text-white rounded-lg text-xs sm:text-sm font-semibold hover:bg-brand-700 transition-colors flex items-center justify-center space-x-1 shadow-sm">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>Aggiungi Nodo</span>
+                    </button>
+                </div>
+
+                <!-- Canvas Visualizer Container -->
+                <div class="relative canvas-bg border-2 border-slate-200 rounded-xl overflow-hidden min-h-[420px] sm:min-h-[500px] flex items-center justify-center p-4">
+                    
+                    <!-- SVG Overlay for Connection Lines -->
+                    <svg id="svg-connections" class="absolute inset-0 w-full h-full pointer-events-none z-0"></svg>
+
+                    <!-- Dynamic Map Display Area -->
+                    <div id="map-container" class="relative w-full h-full min-h-[400px] sm:min-h-[480px] z-10">
+                        <!-- Nodes generated via JS -->
+                    </div>
+
+                    <!-- Watermark info -->
+                    <div class="absolute bottom-3 right-3 text-[10px] text-slate-400 font-mono bg-white/80 backdrop-blur-sm px-2 py-1 rounded-md border border-slate-200">
+                        Modalità: <span id="current-mode-label" class="font-bold text-slate-600">Mappa Mentale</span>
+                    </div>
+                </div>
+
+                <!-- Footer Tips -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-500 gap-2 px-1">
+                    <span class="flex items-center space-x-1">
+                        <i data-lucide="info" class="w-4 h-4 text-brand-500"></i>
+                        <span>Fai clic sui nodi personalizzati per rimuoverli o modificare la struttura.</span>
+                    </span>
+                    <span class="text-slate-400">Dimostrazione interattiva per TIC</span>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 text-xs py-6 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 text-center space-y-2">
+            <p>© 2026 Corso TIC - Esercitazione Mappe Cognitive • Elaborato da Gloria Misson (0-86700)</p>
+            <p class="text-slate-500">Realizzato con componenti Tailwind CSS & JavaScript interattivo.</p>
+        </div>
+    </footer>
+
+    <!-- App Logic & Canvas Engine Script -->
+    <script>
+        // State variables
+        let currentMode = 'mental'; // 'mental' or 'conceptual'
+        let customNodes = [];
+
+        // Predefined data for Mental Map
+        const mentalData = {
+            center: { text: "Idea Centrale", color: "bg-emerald-600 text-white shadow-emerald-500/30" },
+            nodes: [
+                { id: "m1", text: "Memoria Visiva", color: "bg-emerald-500" },
+                { id: "m2", text: "Immagini Fantasiose", color: "bg-teal-500" },
+                { id: "m3", text: "Parole Chiave", color: "bg-emerald-500" },
+                { id: "m4", text: "Creatività", color: "bg-teal-600" },
+                { id: "m5", text: "Associazioni Dirette", color: "bg-emerald-600" }
+            ]
+        };
+
+        // Predefined data for Conceptual Map
+        const conceptualData = {
+            focal: { text: "Domanda Focale: Cos'è l'Apprendimento?", color: "bg-indigo-700 text-white shadow-indigo-500/30" },
+            levels: [
+                [
+                    { id: "c1", text: "Conoscenze Pregresse", color: "bg-indigo-600" },
+                    { id: "c2", text: "Nuove Informazioni", color: "bg-indigo-600" }
+                ],
+                [
+                    { id: "c3", text: "Struttura Gerarchica", color: "bg-blue-600" },
+                    { id: "c4", text: "Collegamenti Trasversali", color: "bg-blue-600" }
+                ],
+                [
+                    { id: "c5", text: "Apprendimento Significativo", color: "bg-purple-600 font-bold" }
+                ]
+            ]
+        };
+
+        // Initialize Lucide Icons
+        document.addEventListener("DOMContentLoaded", () => {
+            lucide.createIcons();
+            renderMap();
+            window.addEventListener('resize', drawConnections);
+        });
+
+        // Tab Switching logic
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-brand-600', 'text-white');
+                btn.classList.add('text-slate-400', 'hover:text-white', 'hover:bg-slate-800');
+            });
+
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+            activeBtn.classList.add('bg-brand-600', 'text-white');
+            activeBtn.classList.remove('text-slate-400', 'hover:text-white', 'hover:bg-slate-800');
+
+            if (tabId === 'simulatore') {
+                setTimeout(renderMap, 50);
+            }
+        }
+
+        // Set map mode (mental / conceptual)
+        function setMapType(mode) {
+            currentMode = mode;
+            document.getElementById('current-mode-label').innerText = mode === 'mental' ? 'Mappa Mentale' : 'Mappa Concettuale';
+
+            const btnMental = document.getElementById('btn-mode-mental');
+            const btnConceptual = document.getElementById('btn-mode-conceptual');
+
+            if (mode === 'mental') {
+                btnMental.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-white text-slate-900 shadow-sm";
+                btnConceptual.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-600 hover:text-slate-900";
+            } else {
+                btnConceptual.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-white text-slate-900 shadow-sm";
+                btnMental.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-600 hover:text-slate-900";
+            }
+
+            renderMap();
+        }
+
+        // Add custom node
+        function addNewNode() {
+            const input = document.getElementById('node-text-input');
+            const colorSelect = document.getElementById('node-color-select');
+            const text = input.value.trim();
+
+            if (!text) return;
+
+            customNodes.push({
+                id: 'custom-' + Date.now(),
+                text: text,
+                colorGroup: colorSelect.value
+            });
+
+            input.value = '';
+            renderMap();
+        }
+
+        // Reset map custom nodes
+        function resetMap() {
+            customNodes = [];
+            renderMap();
+        }
+
+        // Main rendering function
+        function renderMap() {
+            const container = document.getElementById('map-container');
+            container.innerHTML = '';
+
+            if (currentMode === 'mental') {
+                renderMentalLayout(container);
+            } else {
+                renderConceptualLayout(container);
+            }
+
+            setTimeout(drawConnections, 30);
+        }
+
+        // Render Radial Mental Map
+        function renderMentalLayout(container) {
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            // Center Node
+            const centerEl = createNodeElem('node-center', mentalData.center.text, 
+                `absolute z-20 px-5 py-3 rounded-2xl font-bold text-sm shadow-xl ${mentalData.center.color} text-center transform -translate-x-1/2 -translate-y-1/2 node-pulse`);
+            centerEl.style.left = `${centerX}px`;
+            centerEl.style.top = `${centerY}px`;
+            container.appendChild(centerEl);
+
+            // Combine predefined + custom nodes
+            const allNodes = [
+                ...mentalData.nodes.map(n => ({ ...n, isCustom: false })),
+                ...customNodes.map(n => ({ id: n.id, text: n.text, color: getColorClass(n.colorGroup), isCustom: true }))
+            ];
+
+            const total = allNodes.length;
+            const radius = Math.min(width, height) * 0.32;
+
+            allNodes.forEach((node, index) => {
+                const angle = (index / total) * (2 * Math.PI) - (Math.PI / 2);
+                const x = centerX + radius * Math.cos(angle);
+                const y = centerY + radius * Math.sin(angle);
+
+                const nodeEl = createNodeElem(node.id, node.text, 
+                    `absolute z-20 px-3.5 py-2 rounded-xl text-xs font-semibold text-white shadow-md ${node.color} transform -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-110 cursor-pointer`,
+                    node.isCustom);
+
+                nodeEl.style.left = `${x}px`;
+                nodeEl.style.top = `${y}px`;
+
+                if (node.isCustom) {
+                    nodeEl.title = "Clicca per rimuovere questo nodo";
+                    nodeEl.onclick = () => removeCustomNode(node.id);
+                }
+
+                container.appendChild(nodeEl);
+            });
+        }
+
+        // Render Hierarchical Conceptual Map
+        function renderConceptualLayout(container) {
+            const width = container.clientWidth;
+            
+            // Level 0: Focal Question
+            const focalEl = createNodeElem('node-focal', conceptualData.focal.text, 
+                `absolute z-20 px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-lg ${conceptualData.focal.color} text-center transform -translate-x-1/2 border border-indigo-400/40`);
+            focalEl.style.left = `${width / 2}px`;
+            focalEl.style.top = `30px`;
+            container.appendChild(focalEl);
+
+            // Levels
+            const levels = conceptualData.levels;
+            const levelTopY = [130, 240, 340];
+
+            levels.forEach((lvlNodes, lvlIdx) => {
+                const count = lvlNodes.length;
+                lvlNodes.forEach((node, nIdx) => {
+                    const step = width / (count + 1);
+                    const x = step * (nIdx + 1);
+                    const y = levelTopY[lvlIdx] || (340 + lvlIdx * 70);
+
+                    const nodeEl = createNodeElem(node.id, node.text, 
+                        `absolute z-20 px-4 py-2 rounded-xl text-xs font-semibold text-white shadow-md ${node.color} transform -translate-x-1/2 transition-transform hover:scale-105`);
+                    nodeEl.style.left = `${x}px`;
+                    nodeEl.style.top = `${y}px`;
+                    container.appendChild(nodeEl);
+                });
+            });
+
+            // Custom nodes placed in lowest level
+            if (customNodes.length > 0) {
+                const customY = 410;
+                const count = customNodes.length;
+                customNodes.forEach((node, nIdx) => {
+                    const step = width / (count + 1);
+                    const x = step * (nIdx + 1);
+                    const nodeEl = createNodeElem(node.id, node.text, 
+                        `absolute z-20 px-3.5 py-2 rounded-xl text-xs font-semibold text-white shadow-md ${getColorClass(node.colorGroup)} transform -translate-x-1/2 cursor-pointer`,
+                        true);
+                    nodeEl.style.left = `${x}px`;
+                    nodeEl.style.top = `${customY}px`;
+                    nodeEl.title = "Clicca per rimuovere questo nodo";
+                    nodeEl.onclick = () => removeCustomNode(node.id);
+                    container.appendChild(nodeEl);
+                });
+            }
+        }
+
+        // Helper to create element
+        function createNodeElem(id, text, className, isCustom = false) {
+            const div = document.createElement('div');
+            div.id = id;
+            div.className = className;
+            div.innerHTML = isCustom ? `<span>${text}</span> <i data-lucide="x" class="w-3 h-3 inline ml-1 opacity-70"></i>` : text;
+            setTimeout(() => lucide.createIcons({ props: { search: div } }), 0);
+            return div;
+        }
+
+        // Get Tailwind color class from select
+        function getColorClass(colorGroup) {
+            switch(colorGroup) {
+                case 'emerald': return 'bg-emerald-500';
+                case 'indigo': return 'bg-indigo-600';
+                case 'amber': return 'bg-amber-500';
+                case 'purple': return 'bg-purple-600';
+                default: return 'bg-brand-600';
+            }
+        }
+
+        // Remove custom node
+        function removeCustomNode(id) {
+            customNodes = customNodes.filter(n => n.id !== id);
+            renderMap();
+        }
+
+        // Draw connecting SVG lines between nodes
+        function drawConnections() {
+            const svg = document.getElementById('svg-connections');
+            if (!svg) return;
+            svg.innerHTML = '';
+
+            const container = document.getElementById('map-container');
+            const rectContainer = container.getBoundingClientRect();
+
+            if (currentMode === 'mental') {
+                const centerNode = document.getElementById('node-center');
+                if (!centerNode) return;
+                const cRect = centerNode.getBoundingClientRect();
+                const cx = cRect.left + cRect.width / 2 - rectContainer.left;
+                const cy = cRect.top + cRect.height / 2 - rectContainer.top;
+
+                const nodes = container.querySelectorAll('[id]:not(#node-center)');
+                nodes.forEach(node => {
+                    const nRect = node.getBoundingClientRect();
+                    const nx = nRect.left + nRect.width / 2 - rectContainer.left;
+                    const ny = nRect.top + nRect.height / 2 - rectContainer.top;
+
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', cx);
+                    line.setAttribute('y1', cy);
+                    line.setAttribute('x2', nx);
+                    line.setAttribute('y2', ny);
+                    line.setAttribute('stroke', '#10b981');
+                    line.setAttribute('stroke-width', '2');
+                    line.setAttribute('stroke-dasharray', '4 2');
+                    line.setAttribute('opacity', '0.6');
+                    svg.appendChild(line);
+                });
+            } else {
+                // Conceptual Map connections (top to bottom)
+                const focalNode = document.getElementById('node-focal');
+                if (!focalNode) return;
+
+                const fRect = focalNode.getBoundingClientRect();
+                const fx = fRect.left + fRect.width / 2 - rectContainer.left;
+                const fy = fRect.top + fRect.height - rectContainer.top;
+
+                // Connect focal to level 1
+                ['c1', 'c2'].forEach(childId => {
+                    const child = document.getElementById(childId);
+                    if (child) {
+                        drawSvgLine(svg, fx, fy, child, rectContainer, '#6366f1');
+                    }
+                });
+
+                // Connect c1, c2 to c3, c4
+                const c1 = document.getElementById('c1');
+                const c2 = document.getElementById('c2');
+                const c3 = document.getElementById('c3');
+                const c4 = document.getElementById('c4');
+                const c5 = document.getElementById('c5');
+
+                if (c1 && c3) drawElemToElemLine(svg, c1, c3, rectContainer, '#3b82f6');
+                if (c2 && c4) drawElemToElemLine(svg, c2, c4, rectContainer, '#3b82f6');
+                if (c3 && c5) drawElemToElemLine(svg, c3, c5, rectContainer, '#8b5cf6');
+                if (c4 && c5) drawElemToElemLine(svg, c4, c5, rectContainer, '#8b5cf6');
+            }
+        }
+
+        function drawSvgLine(svg, x1, y1, targetElem, rectContainer, strokeColor) {
+            const tRect = targetElem.getBoundingClientRect();
+            const tx = tRect.left + tRect.width / 2 - rectContainer.left;
+            const ty = tRect.top - rectContainer.top;
+
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            const d = `M ${x1} ${y1} C ${x1} ${(y1 + ty) / 2}, ${tx} ${(y1 + ty) / 2}, ${tx} ${ty}`;
+            path.setAttribute('d', d);
+            path.setAttribute('stroke', strokeColor);
+            path.setAttribute('stroke-width', '2');
+            path.setAttribute('fill', 'none');
+            path.setAttribute('opacity', '0.7');
+            svg.appendChild(path);
+        }
+
+        function drawElemToElemLine(svg, elemA, elemB, rectContainer, strokeColor) {
+            const rA = elemA.getBoundingClientRect();
+            const ax = rA.left + rA.width / 2 - rectContainer.left;
+            const ay = rA.top + rA.height - rectContainer.top;
+
+            drawSvgLine(svg, ax, ay, elemB, rectContainer, strokeColor);
+        }
+    </script>
+</body>
+</html>
