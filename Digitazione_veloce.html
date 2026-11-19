@@ -1,0 +1,689 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Digitazione veloce</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:wght@600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: una colonna di pannelli. In alto studente e testo del docente affiancati, poi cronometro e comandi, poi testo da copiare e area di scrittura, infine il salvataggio. */
+:root {
+  --bg: #f1f4f3;
+  --surface: #ffffff;
+  --surface-2: #f6f9f8;
+  --ink: #14232b;
+  --muted: #566a71;
+  --line: #d3dcda;
+  --accent: #0e6a6a;
+  --accent-ink: #ffffff;
+  --hl: #ffe27a;
+  --hl-ink: #14232b;
+  --ok: #1b7a45;
+  --bad: #b3261e;
+  --bad-bg: #fbdcd8;
+  --skip: #8a5600;
+  --skip-bg: #fde9bd;
+  --t-ok: #2e9e6b;
+  --t-warn: #e08a00;
+  --t-end: #d63a2f;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1a1d; --surface: #15262a; --surface-2: #1b2f34; --ink: #e5eeee; --muted: #93a8ac;
+    --line: #2b4046; --accent: #4fc3c0; --accent-ink: #052120; --hl: #6a5a12; --hl-ink: #fff3c4;
+    --ok: #6fd49b; --bad: #ff9a90; --bad-bg: #5a2420; --skip: #f2c46a; --skip-bg: #4d3a0e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1a1d; --surface: #15262a; --surface-2: #1b2f34; --ink: #e5eeee; --muted: #93a8ac;
+  --line: #2b4046; --accent: #4fc3c0; --accent-ink: #052120; --hl: #6a5a12; --hl-ink: #fff3c4;
+  --ok: #6fd49b; --bad: #ff9a90; --bad-bg: #5a2420; --skip: #f2c46a; --skip-bg: #4d3a0e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+}
+.wrap { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { font-family: var(--font-display); font-size: 1.9rem; line-height: 1.1; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-size: 1.05rem; margin: 0 0 12px; letter-spacing: 0.01em; }
+.badge { font-size: .85rem; font-weight: 700; padding: 4px 12px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--surface); color: var(--muted); }
+.badge[data-s="running"] { border-color: var(--accent); color: var(--accent); }
+.badge[data-s="paused"] { border-color: var(--skip); color: var(--skip); }
+.badge[data-s="finished"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; }
+.grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr)); }
+.fields { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+.fields .full { grid-column: 1 / -1; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; font-weight: 700; color: var(--muted); letter-spacing: .02em; }
+input[type="text"], input[type="date"], input[type="number"], textarea {
+  font: inherit; color: var(--ink); background: var(--surface-2); border: 1.5px solid var(--line); border-radius: 8px; padding: 9px 11px; width: 100%; min-width: 0;
+}
+textarea { resize: vertical; min-height: 130px; line-height: 1.55; }
+textarea:read-only, textarea:disabled { opacity: .7; cursor: not-allowed; }
+input:focus-visible, textarea:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn {
+  font: inherit; font-weight: 700; cursor: pointer; padding: 9px 16px; border-radius: 8px; border: 1.5px solid var(--accent);
+  background: var(--surface); color: var(--accent); min-height: 42px;
+}
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn.warn { border-color: var(--bad); color: var(--bad); }
+.btn[data-armed] { background: var(--bad); color: #fff; border-color: var(--bad); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn:not(:disabled):hover { filter: brightness(1.06); }
+.hint { color: var(--muted); font-size: .88rem; margin: 8px 0 0; }
+.bar { display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: center; justify-content: space-between; }
+.timer small, .clockinfo small { display: block; font-size: .8rem; font-weight: 700; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.timer b { font-family: var(--font-mono); font-size: 2.6rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stats { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line); }
+.stat { font-size: .85rem; color: var(--muted); }
+.stat b { display: block; font-family: var(--font-mono); font-size: 1.1rem; color: var(--ink); font-variant-numeric: tabular-nums; }
+.progress { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 12px; }
+.progress i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .15s; }
+.target {
+  position: relative; max-height: 260px; overflow-y: auto; background: var(--surface-2); border: 1.5px solid var(--line); border-radius: 8px;
+  padding: 14px 16px; font-size: 1.28rem; line-height: 1.95; white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.target .ok { color: var(--ok); }
+.target .bad { color: var(--bad); background: var(--bad-bg); border-radius: 2px; }
+.target .skip { color: var(--skip); background: var(--skip-bg); border-radius: 2px; text-decoration: line-through; }
+.target .hl { background: var(--hl); color: var(--hl-ink); border-radius: 2px; }
+.target .cur { box-shadow: 0 3px 0 0 var(--accent); background: var(--hl); color: var(--hl-ink); font-weight: 700; }
+.target .nl { color: var(--muted); font-size: .8em; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .82rem; color: var(--muted); margin-top: 8px; }
+.legend span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+#typing { font-size: 1.2rem; min-height: 150px; }
+#msg { min-height: 1.4em; margin: 0; font-size: .92rem; color: var(--muted); }
+details { margin-top: 12px; }
+summary { cursor: pointer; font-weight: 700; color: var(--accent); }
+#jsonOut { margin-top: 8px; font-family: var(--font-mono); font-size: .8rem; min-height: 140px; }
+/* Timer a tempo: impostazioni della docente, anello colorato e barra sopra l'area di scrittura */
+input[type="color"] { width: 100%; height: 42px; padding: 3px; background: var(--surface-2); border: 1.5px solid var(--line); border-radius: 8px; cursor: pointer; }
+input[type="checkbox"] { width: 20px; height: 20px; margin: 0; flex: none; accent-color: var(--accent); }
+.check { flex-direction: row; align-items: center; gap: 10px; font-size: 1rem; color: var(--ink); letter-spacing: 0; }
+.tset { display: grid; gap: 14px 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); margin-top: 14px; }
+.fld { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.lbl { font-size: .85rem; font-weight: 700; color: var(--muted); letter-spacing: .02em; }
+.dur { display: flex; align-items: center; gap: 6px; }
+.dur input { width: 72px; text-align: center; font-family: var(--font-mono); }
+.dur span { color: var(--muted); }
+.chips { margin-top: 14px; }
+.chip { font: inherit; font-weight: 700; cursor: pointer; min-height: 36px; padding: 4px 14px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--surface-2); color: var(--ink); }
+.chip:hover { border-color: var(--accent); }
+.chip:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+[data-phase="ok"] { --tc: var(--t-ok); }
+[data-phase="warn"] { --tc: var(--t-warn); }
+[data-phase="end"] { --tc: var(--t-end); }
+.clock { display: flex; align-items: center; gap: 14px; }
+.clockinfo { display: flex; flex-direction: column; gap: 4px; }
+.ring { position: relative; width: 132px; height: 132px; flex: none; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring circle { fill: none; stroke-width: 12; }
+.ring .trk { stroke: var(--line); }
+.ring .arc { stroke: var(--tc); stroke-dasharray: 326.73; stroke-dashoffset: 0; transition: stroke-dashoffset .25s linear, stroke .3s; }
+.ring b { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--font-mono); font-size: 1.7rem; font-variant-numeric: tabular-nums; }
+.phase { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.05rem; }
+.phase::before { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--tc); flex: none; }
+.tbar { margin-bottom: 12px; }
+.tbar-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 6px; }
+.tbar-top b { font-family: var(--font-mono); font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+.tbar-track { height: 16px; border-radius: 8px; background: var(--line); overflow: hidden; }
+.tbar-track i { display: block; height: 100%; width: 100%; border-radius: 8px; background: var(--tc); transition: width .25s linear, background .3s; }
+@keyframes pulse { 50% { opacity: .45; } }
+.clock[data-run="1"] .arc, .tbar[data-run="1"] .tbar-track i { animation: pulse 1s ease-in-out infinite; }
+@media (max-width: 480px) { .fields { grid-template-columns: 1fr; } .timer b { font-size: 2.2rem; } .target { font-size: 1.12rem; } .ring { width: 112px; height: 112px; } .ring b { font-size: 1.45rem; } }
+@media (prefers-reduced-motion: reduce) { .progress i, .ring .arc, .tbar-track i { transition: none; } .clock[data-run="1"] .arc, .tbar[data-run="1"] .tbar-track i { animation: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Digitazione veloce</h1>
+    <span class="badge" id="badge" data-s="idle">Pronto</span>
+  </header>
+
+  <div class="grid">
+    <section class="card" aria-labelledby="h-stud">
+      <h2 id="h-stud">Dati dello studente</h2>
+      <div class="fields">
+        <label for="nome">Nome<input type="text" id="nome" autocomplete="off"></label>
+        <label for="cognome">Cognome<input type="text" id="cognome" autocomplete="off"></label>
+        <label for="classe">Classe<input type="text" id="classe" placeholder="es. 2B" autocomplete="off"></label>
+        <label for="data">Data<input type="date" id="data"></label>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="h-doc">
+      <h2 id="h-doc">Testo del docente</h2>
+      <textarea id="src" aria-label="Testo da far digitare" placeholder="Incolla qui il testo da far digitare">La scuola apre le porte alle otto e un quarto. Nel corridoio si sente il rumore dei passi, le voci dei ragazzi e il tintinnio delle chiavi. Chi scrive con attenzione, e non soltanto con velocità, arriva al traguardo con meno errori e con più soddisfazione.</textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="btn primary" id="bStart" type="button">Inizia</button>
+        <button class="btn" id="bRestart" type="button" data-label="Ricomincia">Ricomincia</button>
+        <button class="btn warn" id="bClear" type="button" data-label="Svuota">Svuota</button>
+      </div>
+      <p class="hint">Testo di esempio: premi Svuota per sostituirlo con il tuo.</p>
+    </section>
+  </div>
+
+  <section class="card" aria-labelledby="h-tset">
+    <h2 id="h-tset">Timer a tempo</h2>
+    <label class="check" for="tOn"><input type="checkbox" id="tOn" checked>Usa un tempo limite per la prova</label>
+    <div class="tset">
+      <div class="fld">
+        <span class="lbl" id="l-dur">Durata</span>
+        <div class="dur" role="group" aria-labelledby="l-dur">
+          <input type="number" id="tMin" min="0" max="180" value="2" inputmode="numeric" aria-label="Minuti"><span>min</span>
+          <input type="number" id="tSec" min="0" max="59" value="0" inputmode="numeric" aria-label="Secondi"><span>s</span>
+        </div>
+      </div>
+      <label for="tWarn">Attenzione quando mancano (s)<input type="number" id="tWarn" min="0" max="3600" value="30" inputmode="numeric"></label>
+      <label for="tEnd">Ultimi secondi quando mancano (s)<input type="number" id="tEnd" min="0" max="3600" value="10" inputmode="numeric"></label>
+      <label for="cOk">Colore: in tempo<input type="color" id="cOk" value="#2e9e6b"></label>
+      <label for="cWarn">Colore: attenzione<input type="color" id="cWarn" value="#e08a00"></label>
+      <label for="cEnd">Colore: ultimi secondi<input type="color" id="cEnd" value="#d63a2f"></label>
+    </div>
+    <div class="row chips" role="group" aria-label="Durate rapide">
+      <button class="chip" type="button" data-sec="60">1 min</button>
+      <button class="chip" type="button" data-sec="120">2 min</button>
+      <button class="chip" type="button" data-sec="180">3 min</button>
+      <button class="chip" type="button" data-sec="300">5 min</button>
+      <button class="chip" type="button" data-sec="600">10 min</button>
+      <button class="chip" type="button" id="bPlus">+30 s</button>
+    </div>
+    <label class="check" for="tAuto" style="margin-top:14px"><input type="checkbox" id="tAuto" checked>Termina la prova quando il tempo scade</label>
+    <p class="hint">Si può cambiare anche durante la prova. Le impostazioni restano memorizzate su questo dispositivo.</p>
+  </section>
+
+  <section class="card" aria-label="Cronometro e comandi">
+    <div class="bar">
+      <div class="clock" id="clock" data-phase="ok" data-run="0">
+        <div class="ring">
+          <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"></circle><circle class="arc" id="arc" cx="60" cy="60" r="52"></circle></svg>
+          <b id="rem">02:00</b>
+        </div>
+        <div class="clockinfo"><small>Tempo rimasto</small><span class="phase" id="phase">In tempo</span></div>
+      </div>
+      <div class="timer"><small>Trascorso</small><b id="timer" aria-live="off">00:00</b></div>
+      <div class="row">
+        <button class="btn" id="bPause" type="button">Pausa</button>
+        <button class="btn" id="bSkip" type="button">Salta carattere</button>
+        <button class="btn warn" id="bEnd" type="button" data-label="Termina">Termina</button>
+      </div>
+    </div>
+    <div class="progress" aria-hidden="true"><i id="prog"></i></div>
+    <div class="stats">
+      <div class="stat">Caratteri<b id="sChars">0 / 0</b></div>
+      <div class="stat">Errori<b id="sErr">0</b></div>
+      <div class="stat">Saltati<b id="sSkip">0</b></div>
+      <div class="stat">Precisione<b id="sAcc">–</b></div>
+      <div class="stat">Parole al minuto<b id="sWpm">–</b></div>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="h-target">
+    <h2 id="h-target">Testo da copiare</h2>
+    <div class="target" id="target" aria-live="off"></div>
+    <div class="legend">
+      <span style="--c:var(--hl)">Da scrivere ora</span>
+      <span style="--c:var(--ok)">Corretto</span>
+      <span style="--c:var(--bad)">Errore</span>
+      <span style="--c:var(--skip)">Saltato</span>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="h-type">
+    <h2 id="h-type">Scrive lo studente</h2>
+    <div class="tbar" id="tbar" data-phase="ok" data-run="0">
+      <div class="tbar-top"><span class="phase" id="tbarLabel">In tempo</span><b id="tbarRem">02:00</b></div>
+      <div class="tbar-track" aria-hidden="true"><i id="tbarFill"></i></div>
+    </div>
+    <textarea id="typing" disabled spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" aria-label="Area di scrittura dello studente" placeholder="Premi Inizia: da quel momento puoi scrivere qui"></textarea>
+    <p class="hint">Incollare non è consentito. A capo si scrive con Invio.</p>
+  </section>
+
+  <section class="card" aria-labelledby="h-file">
+    <h2 id="h-file">File della prova</h2>
+    <div class="row">
+      <button class="btn primary" id="bSave" type="button">Salva in .json</button>
+      <button class="btn" id="bLoad" type="button">Recupera da .json</button>
+      <button class="btn" id="bPdf" type="button">Scarica report PDF</button>
+      <input type="file" id="file" accept=".json,application/json" hidden>
+    </div>
+    <p id="msg" role="status"></p>
+    <details id="fallback" hidden>
+      <summary>Se il file non si scarica, copia il contenuto</summary>
+      <textarea id="jsonOut" readonly aria-label="Contenuto del file json"></textarea>
+      <div class="row" style="margin-top:8px"><button class="btn" id="bCopy" type="button">Copia</button></div>
+    </details>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var S = { text: "", typed: "", skipped: [], elapsed: 0, status: "idle", startTs: 0 };
+  var tick = null;
+  var dl = null;
+
+  var el = {
+    nome: $("nome"), cognome: $("cognome"), classe: $("classe"), data: $("data"),
+    src: $("src"), typing: $("typing"), target: $("target"), timer: $("timer"), badge: $("badge"), prog: $("prog"),
+    bStart: $("bStart"), bRestart: $("bRestart"), bClear: $("bClear"), bPause: $("bPause"), bSkip: $("bSkip"), bEnd: $("bEnd"),
+    bSave: $("bSave"), bLoad: $("bLoad"), bPdf: $("bPdf"), file: $("file"), msg: $("msg"), fallback: $("fallback"), jsonOut: $("jsonOut"), bCopy: $("bCopy"),
+    sChars: $("sChars"), sErr: $("sErr"), sSkip: $("sSkip"), sAcc: $("sAcc"), sWpm: $("sWpm"),
+    tOn: $("tOn"), tMin: $("tMin"), tSec: $("tSec"), tWarn: $("tWarn"), tEnd: $("tEnd"), tAuto: $("tAuto"),
+    cOk: $("cOk"), cWarn: $("cWarn"), cEnd: $("cEnd"), bPlus: $("bPlus"),
+    clock: $("clock"), arc: $("arc"), rem: $("rem"), phase: $("phase"),
+    tbar: $("tbar"), tbarLabel: $("tbarLabel"), tbarRem: $("tbarRem"), tbarFill: $("tbarFill")
+  };
+
+  function pad(n) { return n < 10 ? "0" + n : "" + n; }
+  function today() { var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function norm(s) { return String(s).replace(/\r\n?/g, "\n").trim(); }
+  function esc(c) { return c === "&" ? "&amp;" : c === "<" ? "&lt;" : c === ">" ? "&gt;" : c; }
+  function say(t) { el.msg.textContent = t; }
+  function curText() { return S.status === "idle" ? norm(el.src.value) : S.text; }
+  function elapsedNow() { return S.elapsed + (S.status === "running" ? performance.now() - S.startTs : 0); }
+
+  function metrics() {
+    var text = curText(), typed = S.typed, skip = {}, ok = 0, err = 0, i;
+    S.skipped.forEach(function (k) { skip[k] = 1; });
+    for (i = 0; i < typed.length; i++) {
+      if (skip[i]) continue;
+      if (typed.charAt(i) === text.charAt(i)) ok++; else err++;
+    }
+    var min = elapsedNow() / 60000;
+    return {
+      caratteriScritti: typed.length, caratteriTotali: text.length, corretti: ok, errori: err, saltati: S.skipped.length,
+      precisione: ok + err ? Math.round(1000 * ok / (ok + err)) / 10 : null,
+      paroleAlMinuto: min > 0.01 ? Math.round(10 * (ok / 5) / min) / 10 : null
+    };
+  }
+
+  function fmt(ms) {
+    var s = Math.floor(ms / 1000), m = Math.floor(s / 60);
+    return pad(m) + ":" + pad(s % 60);
+  }
+
+  /* Timer a tempo: impostazioni della docente */
+  var DEF = { on: true, min: 2, sec: 0, warn: 30, end: 10, auto: true, cOk: "#2e9e6b", cWarn: "#e08a00", cEnd: "#d63a2f" };
+  var ARC = 2 * Math.PI * 52;
+  function num(inp, lo, hi, d) { var v = parseInt(inp.value, 10); if (isNaN(v)) v = d; return Math.min(hi, Math.max(lo, v)); }
+  function cfg() {
+    var total = num(el.tMin, 0, 180, 2) * 60 + num(el.tSec, 0, 59, 0);
+    var end = Math.min(num(el.tEnd, 0, 3600, 10), total);
+    var warn = Math.max(end, Math.min(num(el.tWarn, 0, 3600, 30), total));
+    return { on: el.tOn.checked && total > 0, total: total, warn: warn, end: end, auto: el.tAuto.checked };
+  }
+  function limitMs() { var c = cfg(); return c.on ? c.total * 1000 : 0; }
+  function applyColors() {
+    var r = document.documentElement.style;
+    r.setProperty("--t-ok", el.cOk.value); r.setProperty("--t-warn", el.cWarn.value); r.setProperty("--t-end", el.cEnd.value);
+  }
+  function normalize() {
+    el.tMin.value = num(el.tMin, 0, 180, DEF.min); el.tSec.value = num(el.tSec, 0, 59, DEF.sec);
+    el.tWarn.value = num(el.tWarn, 0, 3600, DEF.warn); el.tEnd.value = num(el.tEnd, 0, 3600, DEF.end);
+    applyColors();
+  }
+  function setCfg(o) {
+    o = o || {};
+    function pick(k) { return o[k] === undefined || o[k] === null ? DEF[k] : o[k]; }
+    function col(k) { return /^#[0-9a-f]{6}$/i.test(String(pick(k))) ? pick(k) : DEF[k]; }
+    el.tOn.checked = !!pick("on"); el.tAuto.checked = !!pick("auto");
+    el.tMin.value = pick("min"); el.tSec.value = pick("sec"); el.tWarn.value = pick("warn"); el.tEnd.value = pick("end");
+    el.cOk.value = col("cOk"); el.cWarn.value = col("cWarn"); el.cEnd.value = col("cEnd");
+    normalize();
+  }
+  function rawCfg() {
+    return { on: el.tOn.checked, auto: el.tAuto.checked, min: +el.tMin.value, sec: +el.tSec.value, warn: +el.tWarn.value, end: +el.tEnd.value,
+      cOk: el.cOk.value, cWarn: el.cWarn.value, cEnd: el.cEnd.value };
+  }
+  function saveCfg() { try { localStorage.setItem("dv-timer", JSON.stringify(rawCfg())); } catch (e) { /* ignora */ } }
+  function loadCfg() {
+    var o = null;
+    try { var s = localStorage.getItem("dv-timer"); if (s) o = JSON.parse(s); } catch (e) { o = null; }
+    setCfg(o);
+  }
+  function onCfg() { normalize(); saveCfg(); renderTimer(); }
+
+  function renderClock() {
+    var c = cfg(), st = S.status;
+    el.clock.hidden = !c.on; el.tbar.hidden = !c.on;
+    if (!c.on) return;
+    var remMs = Math.max(0, c.total * 1000 - elapsedNow());
+    var rem = Math.ceil(remMs / 1000);
+    var phase = st === "idle" ? "ok" : rem <= c.end ? "end" : rem <= c.warn ? "warn" : "ok";
+    var label = remMs <= 0 && st !== "idle" ? "Tempo scaduto" : st === "paused" ? "In pausa" : st === "finished" ? "Prova terminata"
+      : phase === "ok" ? "In tempo" : phase === "warn" ? "Attenzione" : "Ultimi secondi";
+    var frac = remMs / (c.total * 1000), t = fmt(rem * 1000), run = st === "running" && phase === "end" ? "1" : "0";
+    el.clock.dataset.phase = phase; el.clock.dataset.run = run;
+    el.tbar.dataset.phase = phase; el.tbar.dataset.run = run;
+    el.arc.style.strokeDashoffset = String(ARC * (1 - frac));
+    el.rem.textContent = t; el.tbarRem.textContent = t;
+    el.phase.textContent = label; el.tbarLabel.textContent = label;
+    el.tbarFill.style.width = (100 * frac) + "%";
+  }
+
+  function renderTimer() {
+    var lim = limitMs();
+    if (S.status === "running" && lim && cfg().auto && elapsedNow() >= lim) { finish(true); return; }
+    el.timer.textContent = fmt(elapsedNow());
+    var m = metrics();
+    el.sWpm.textContent = m.paroleAlMinuto === null ? "–" : String(m.paroleAlMinuto).replace(".", ",");
+    renderClock();
+  }
+
+  function renderStats() {
+    var m = metrics();
+    el.sChars.textContent = m.caratteriScritti + " / " + m.caratteriTotali;
+    el.sErr.textContent = m.errori;
+    el.sSkip.textContent = m.saltati;
+    el.sAcc.textContent = m.precisione === null ? "–" : String(m.precisione).replace(".", ",") + "%";
+    el.prog.style.width = (m.caratteriTotali ? 100 * m.caratteriScritti / m.caratteriTotali : 0) + "%";
+    renderTimer();
+  }
+
+  function renderTarget() {
+    var text = curText(), typed = S.typed, n = text.length, p = typed.length, skip = {}, i, out = [];
+    S.skipped.forEach(function (k) { skip[k] = 1; });
+    var ws = -1, we = -1;
+    if (S.status !== "finished" && p < n) {
+      if (/\s/.test(text.charAt(p))) { ws = p; we = p + 1; }
+      else {
+        ws = p; while (ws > 0 && !/\s/.test(text.charAt(ws - 1))) ws--;
+        we = p; while (we < n && !/\s/.test(text.charAt(we))) we++;
+      }
+    }
+    for (i = 0; i < n; i++) {
+      var c = text.charAt(i), cls = "";
+      if (i < p) cls = skip[i] ? "skip" : (typed.charAt(i) === c ? "ok" : "bad");
+      else if (i === p && S.status !== "finished") cls = "cur";
+      else if (i >= ws && i < we) cls = "hl";
+      var nl = c === "\n";
+      out.push('<span' + (cls || nl ? ' class="' + (cls + (nl ? " nl" : "")).trim() + '"' : "") + '>' + (nl ? "↵" : esc(c)) + "</span>" + (nl ? "\n" : ""));
+    }
+    el.target.innerHTML = out.join("") || '<span class="nl">Incolla un testo nella finestra del docente.</span>';
+    var cur = el.target.querySelector(".cur");
+    if (cur) {
+      var t = cur.offsetTop, box = el.target;
+      if (t < box.scrollTop + 16 || t > box.scrollTop + box.clientHeight - 60) box.scrollTop = Math.max(0, t - box.clientHeight / 3);
+    }
+  }
+
+  var LABEL = { idle: "Pronto", running: "In corso", paused: "In pausa", finished: "Terminato" };
+  function renderControls() {
+    var st = S.status, hasText = norm(el.src.value).length > 0;
+    el.badge.textContent = LABEL[st]; el.badge.dataset.s = st;
+    el.bStart.disabled = !(st === "idle" && hasText);
+    el.bRestart.disabled = !hasText && st === "idle";
+    el.bPause.disabled = !(st === "running" || st === "paused");
+    el.bPause.textContent = st === "paused" ? "Riprendi" : "Pausa";
+    el.bSkip.disabled = st !== "running";
+    el.bEnd.disabled = !(st === "running" || st === "paused");
+    el.src.readOnly = st !== "idle";
+    el.typing.disabled = st !== "running";
+    el.bPdf.disabled = !(S.typed.length > 0 || st === "finished");
+  }
+
+  function renderAll() { renderControls(); renderTarget(); renderStats(); }
+
+  function startTick() { stopTick(); tick = setInterval(renderTimer, 200); }
+  function stopTick() { if (tick) { clearInterval(tick); tick = null; } }
+
+  function resetProgress() {
+    stopTick();
+    S.typed = ""; S.skipped = []; S.elapsed = 0; S.status = "idle"; S.text = "";
+    el.typing.value = "";
+  }
+
+  function start() {
+    var t = norm(el.src.value);
+    if (!t) { say("Incolla prima un testo nella finestra del docente."); return; }
+    resetProgress();
+    S.text = t; S.status = "running"; S.startTs = performance.now();
+    startTick(); renderAll(); say("Prova iniziata.");
+    el.typing.focus();
+  }
+
+  function finish(expired) {
+    if (S.status !== "running" && S.status !== "paused") return;
+    expired = expired === true && limitMs() > 0;
+    S.elapsed = expired ? limitMs() : elapsedNow(); S.status = "finished";
+    stopTick(); renderAll();
+    say(expired ? "Tempo scaduto: prova terminata dopo " + fmt(S.elapsed) + "." : "Prova terminata in " + fmt(S.elapsed) + ".");
+  }
+
+  function togglePause() {
+    if (S.status === "running") {
+      S.elapsed = elapsedNow(); S.status = "paused"; stopTick(); renderAll(); say("Timer in pausa.");
+    } else if (S.status === "paused") {
+      S.startTs = performance.now(); S.status = "running"; startTick(); renderAll(); say(""); el.typing.focus();
+    }
+  }
+
+  function skipChar() {
+    if (S.status !== "running" || S.typed.length >= S.text.length) return;
+    var i = S.typed.length;
+    S.typed += S.text.charAt(i); S.skipped.push(i);
+    el.typing.value = S.typed;
+    afterTyping();
+    el.typing.focus();
+  }
+
+  function afterTyping() {
+    renderTarget(); renderStats();
+    if (S.typed.length >= S.text.length) finish();
+  }
+
+  el.typing.addEventListener("input", function () {
+    if (S.status !== "running") return;
+    var v = el.typing.value.replace(/\r\n?/g, "\n");
+    if (v.length > S.text.length) { v = v.slice(0, S.text.length); }
+    if (v !== el.typing.value) el.typing.value = v;
+    S.typed = v;
+    S.skipped = S.skipped.filter(function (k) { return k < v.length; });
+    afterTyping();
+  });
+  ["paste", "drop"].forEach(function (ev) {
+    el.typing.addEventListener(ev, function (e) { e.preventDefault(); say("Incollare non è consentito durante la prova."); });
+  });
+  el.src.addEventListener("input", function () { renderAll(); });
+
+  /* Pulsanti con doppio tocco per le azioni che cancellano il lavoro */
+  function twice(btn, fn) {
+    btn.addEventListener("click", function () {
+      if (btn.dataset.armed) { clearTimeout(btn._t); disarm(btn); fn(); return; }
+      btn.dataset.armed = "1"; btn.textContent = "Conferma?";
+      btn._t = setTimeout(function () { disarm(btn); }, 3000);
+    });
+  }
+  function disarm(btn) { delete btn.dataset.armed; btn.textContent = btn.dataset.label; }
+
+  twice(el.bRestart, function () { resetProgress(); renderAll(); say("Prova azzerata. Premi Inizia quando lo studente è pronto."); });
+  twice(el.bClear, function () { resetProgress(); el.src.value = ""; renderAll(); say("Testo e prova svuotati."); });
+  twice(el.bEnd, finish);
+  el.bStart.addEventListener("click", start);
+  el.bPause.addEventListener("click", togglePause);
+  el.bSkip.addEventListener("click", skipChar);
+
+  /* File .json */
+  function snapshot() {
+    var m = metrics(), c = cfg();
+    return {
+      app: "digitazione-veloce", versione: 2, salvatoIl: new Date().toISOString(),
+      timer: { attivo: c.on, durataSec: c.total, attenzioneSec: c.warn, ultimiSecondiSec: c.end, terminaAuto: c.auto,
+        colori: { ok: el.cOk.value, attenzione: el.cWarn.value, ultimiSecondi: el.cEnd.value } },
+      studente: { nome: el.nome.value.trim(), cognome: el.cognome.value.trim(), classe: el.classe.value.trim(), data: el.data.value },
+      testo: curText(), scritto: S.typed, saltati: S.skipped.slice(), tempoMs: Math.round(elapsedNow()), stato: S.status,
+      statistiche: m
+    };
+  }
+  function fileName(o) {
+    var part = function (s) { return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, ""); };
+    var bits = ["digitazione", part(o.studente.cognome), part(o.studente.nome), part(o.studente.data)].filter(Boolean);
+    return bits.join("_") + ".json";
+  }
+  function save() {
+    var o = snapshot(), json = JSON.stringify(o, null, 2), name = fileName(o);
+    el.jsonOut.value = json;
+    if (dl) {
+      dl.save({ filename: name, data: json }).then(function () { say("File salvato: " + name); })
+        .catch(function (e) {
+          if (e && e.code === "declined") { say("Salvataggio annullato."); return; }
+          el.fallback.hidden = false; say("Non riesco a scaricare il file da qui. Copia il contenuto qui sotto in un file .json.");
+        });
+      return;
+    }
+    try {
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([json], { type: "application/json" }));
+      a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      say("File preparato: " + name + ". Se non compare nei download, usa il contenuto qui sotto.");
+    } catch (e) { say("Copia il contenuto qui sotto in un file .json."); }
+    el.fallback.hidden = false;
+  }
+  el.bSave.addEventListener("click", save);
+  el.bCopy.addEventListener("click", function () {
+    var ok = false;
+    function sel() { el.jsonOut.focus(); el.jsonOut.select(); say("Testo selezionato: copialo con Ctrl+C."); }
+    try {
+      navigator.clipboard.writeText(el.jsonOut.value).then(function () { say("Copiato."); }, sel);
+      ok = true;
+    } catch (e) { /* ignora */ }
+    if (!ok) sel();
+  });
+
+  el.bLoad.addEventListener("click", function () { el.file.value = ""; el.file.click(); });
+  el.file.addEventListener("change", function () {
+    var f = el.file.files && el.file.files[0];
+    if (!f) return;
+    var r = new FileReader();
+    r.onload = function () {
+      try {
+        var o = JSON.parse(r.result);
+        if (!o || typeof o.testo !== "string") throw new Error("formato");
+        stopTick();
+        var s = o.studente || {};
+        el.nome.value = s.nome || ""; el.cognome.value = s.cognome || ""; el.classe.value = s.classe || ""; el.data.value = s.data || today();
+        el.src.value = o.testo;
+        if (o.timer && typeof o.timer === "object") {
+          var tm = o.timer, col = tm.colori || {}, d = Math.max(0, Number(tm.durataSec) || 0);
+          setCfg({ on: !!tm.attivo, min: Math.floor(d / 60), sec: d % 60, warn: tm.attenzioneSec, end: tm.ultimiSecondiSec,
+            auto: tm.terminaAuto, cOk: col.ok, cWarn: col.attenzione, cEnd: col.ultimiSecondi });
+          saveCfg();
+        }
+        var typed = typeof o.scritto === "string" ? o.scritto.slice(0, o.testo.length) : "";
+        var st = ["idle", "running", "paused", "finished"].indexOf(o.stato) >= 0 ? o.stato : "paused";
+        if (st === "running") st = "paused";
+        if (!typed && st === "paused" && !o.tempoMs) st = "idle";
+        S.text = norm(o.testo); S.typed = typed.slice(0, S.text.length);
+        S.skipped = (Array.isArray(o.saltati) ? o.saltati : []).filter(function (k) { return Number.isInteger(k) && k >= 0 && k < S.typed.length; });
+        S.elapsed = Math.max(0, Number(o.tempoMs) || 0); S.status = st;
+        el.typing.value = S.typed;
+        renderAll();
+        say(st === "paused" ? "File recuperato. La prova è in pausa: premi Riprendi per continuare." : "File recuperato.");
+      } catch (e) { say("Il file non è valido. Scegli un file .json salvato da questa app."); }
+    };
+    r.onerror = function () { say("Non riesco a leggere il file."); };
+    r.readAsText(f);
+  });
+
+  /* Report PDF (jsPDF) */
+  function lat(s) {
+    return String(s).replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, "-").replace(/…/g, "...")
+      .replace(/[^\n\x20-\x7e\xa0-\xff]/g, "?");
+  }
+  function itDate(iso) { var p = String(iso || "").split("-"); return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : "-"; }
+  function nice(ch) { return ch === " " ? "spazio" : ch === "\n" ? "a capo" : '"' + ch + '"'; }
+  function pdf() {
+    var J = window.jspdf && window.jspdf.jsPDF;
+    if (!J) { say("Il generatore PDF non si è caricato. Controlla la connessione e riprova."); return; }
+    var o = snapshot(), m = o.statistiche, doc = new J({ unit: "mm", format: "a4" });
+    var M = 18, W = 210, TW = W - 2 * M, y = 0;
+    function need(h) { if (y + h > 280) { doc.addPage(); y = M; } }
+    function heading(t) { need(14); y += 6; doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(14, 106, 106); doc.text(t, M, y); y += 2; doc.setDrawColor(14, 106, 106); doc.setLineWidth(0.4); doc.line(M, y, W - M, y); y += 6; }
+    function row(k, v) { need(8); doc.setFont("helvetica", "normal"); doc.setFontSize(10.5); doc.setTextColor(90, 105, 112); doc.text(k, M, y); doc.setFont("helvetica", "bold"); doc.setTextColor(20, 35, 43); doc.text(lat(v), M + 52, y); y += 3; doc.setDrawColor(222, 228, 226); doc.setLineWidth(0.2); doc.line(M, y, W - M, y); y += 5; }
+    function para(t) {
+      doc.setFont("helvetica", "normal"); doc.setFontSize(10.5); doc.setTextColor(20, 35, 43);
+      var lines = doc.splitTextToSize(lat(t) || "(vuoto)", TW);
+      lines.forEach(function (ln) { need(6); doc.text(ln, M, y); y += 5.4; });
+    }
+    doc.setFillColor(14, 106, 106); doc.rect(0, 0, W, 30, "F");
+    doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(20); doc.text("Report di digitazione", M, 15);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(10.5); doc.text("Digitazione veloce  |  " + itDate(o.studente.data), M, 23);
+    y = 30;
+    heading("Studente");
+    row("Cognome e nome", ((o.studente.cognome + " " + o.studente.nome).trim()) || "-");
+    row("Classe", o.studente.classe || "-");
+    row("Data", itDate(o.studente.data));
+    heading("Risultati");
+    row("Stato della prova", { idle: "Non iniziata", running: "In corso", paused: "In pausa (non terminata)", finished: "Terminata" }[o.stato] || o.stato);
+    row("Tempo a disposizione", o.timer && o.timer.attivo ? fmt(o.timer.durataSec * 1000) : "Nessun limite");
+    row("Tempo impiegato", fmt(o.tempoMs));
+    row("Caratteri scritti", m.caratteriScritti + " su " + m.caratteriTotali);
+    row("Caratteri corretti", String(m.corretti));
+    row("Errori", String(m.errori));
+    row("Caratteri saltati", String(m.saltati));
+    row("Precisione", m.precisione === null ? "-" : String(m.precisione).replace(".", ",") + "%");
+    row("Parole al minuto", m.paroleAlMinuto === null ? "-" : String(m.paroleAlMinuto).replace(".", ","));
+    var errs = [], skip = {}, i;
+    o.saltati.forEach(function (k) { skip[k] = 1; });
+    for (i = 0; i < o.scritto.length; i++) { if (!skip[i] && o.scritto.charAt(i) !== o.testo.charAt(i)) errs.push(i); }
+    heading("Errori principali");
+    if (!errs.length) { para("Nessun errore."); }
+    else {
+      doc.setFont("helvetica", "normal"); doc.setFontSize(10.5); doc.setTextColor(20, 35, 43);
+      errs.slice(0, 15).forEach(function (k) { need(6); doc.text(lat("Carattere " + (k + 1) + ": atteso " + nice(o.testo.charAt(k)) + ", scritto " + nice(o.scritto.charAt(k))), M, y); y += 5.4; });
+      if (errs.length > 15) { need(6); doc.setTextColor(90, 105, 112); doc.text("... e altri " + (errs.length - 15) + " errori.", M, y); y += 5.4; }
+    }
+    heading("Testo proposto"); para(o.testo);
+    heading("Testo scritto dallo studente"); para(o.scritto);
+    var n = doc.getNumberOfPages();
+    for (i = 1; i <= n; i++) { doc.setPage(i); doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(120, 130, 135); doc.text("Pagina " + i + " di " + n, W - M, 290, { align: "right" }); }
+    var name = "report_" + fileName(o).replace(/\.json$/, "") + ".pdf";
+    if (dl) {
+      dl.save({ filename: name, data: doc.output("blob") }).then(function () { say("Report salvato: " + name); })
+        .catch(function (e) { say(e && e.code === "declined" ? "Salvataggio annullato." : "Non riesco a scaricare il PDF da qui."); });
+    } else { doc.save(name); say("Report preparato: " + name); }
+  }
+  el.bPdf.addEventListener("click", pdf);
+
+  /* Controlli del timer */
+  ["tMin", "tSec", "tWarn", "tEnd"].forEach(function (k) { el[k].addEventListener("change", onCfg); });
+  ["tOn", "tAuto", "cOk", "cWarn", "cEnd"].forEach(function (k) {
+    el[k].addEventListener("input", onCfg); el[k].addEventListener("change", onCfg);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll(".chip[data-sec]"), function (b) {
+    b.addEventListener("click", function () {
+      var s = Number(b.dataset.sec);
+      el.tMin.value = Math.floor(s / 60); el.tSec.value = s % 60; el.tOn.checked = true; onCfg();
+    });
+  });
+  el.bPlus.addEventListener("click", function () {
+    var t = Math.min(180 * 60, cfg().total + 30);
+    el.tMin.value = Math.floor(t / 60); el.tSec.value = t % 60; el.tOn.checked = true; onCfg();
+  });
+
+  loadCfg();
+  el.data.value = today();
+  renderAll();
+
+  /* Salvataggio tramite il visualizzatore, se disponibile */
+  try {
+    if (window.claude && window.claude.use) {
+      window.claude.use("downloads").then(function (d) { dl = d || null; }, function () { dl = null; });
+    }
+  } catch (e) { dl = null; }
+})();
+</script>
+
+
+</body></html>
